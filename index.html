@@ -10,6 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Favicon (mencegah 404 di browser publik) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
@@ -304,8 +306,11 @@
         // Inisialisasi ikon Lucide
         lucide.createIcons();
 
-        // API Key sudah terpasang dan siap untuk deploy ke Vercel
-        const apiKey = "AQ.Ab8RN6JocXkN9MdqgahuxU_ArdSeBOxw1aQcTLNiaP4Klj0s4w";
+        // Konfigurasi aplikasi (siap untuk deploy statis di Vercel)
+        const APP_CONFIG = {
+            apiKey: "[MASUKKAN_API_KEY_DISINI]"
+        };
+        const apiKey = APP_CONFIG.apiKey;
 
         // Database Karakter Suara berdasarkan Jenis Kelamin
         const voiceCatalog = {
@@ -416,6 +421,7 @@
             const text = narrationInput.value;
             const chars = text.length;
             const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+            // Rata-rata bicara bahasa Indonesia sekitar 130-150 kata per menit (~2.3 kata/detik)
             const estSeconds = Math.ceil(words / 2.3);
 
             document.getElementById('charCount').textContent = chars.toLocaleString('id-ID');
@@ -475,7 +481,7 @@
             }, 4000);
         }
 
-        // Memecah teks panjang menjadi potongan cerdas
+        // Memecah teks panjang menjadi potongan cerdas (per kalimat/paragraf) agar mendukung narasi tanpa batas karakter
         function splitTextIntoChunks(text, maxChunkLength = 800) {
             const paragraphs = text.split(/\n+/);
             const chunks = [];
@@ -485,6 +491,7 @@
                 const trimmedPara = para.trim();
                 if (!trimmedPara) continue;
 
+                // Pecah per kalimat jika paragraf terlalu panjang
                 const sentences = trimmedPara.match(/[^.!?]+[.!?]*\s*/g) || [trimmedPara];
                 
                 for (const sentence of sentences) {
@@ -530,8 +537,8 @@
 
         // Helper: Konversi Raw PCM 16-bit menjadi File MP3 asli menggunakan LameJS
         function encodePcmToMp3(pcm16Samples, sampleRate = 24000) {
-            const channels = 1;
-            const kbps = 128;
+            const channels = 1; // Mono
+            const kbps = 128;   // Kualitas MP3 standar tinggi 128kbps
             const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
             const mp3Data = [];
 
@@ -600,6 +607,7 @@
             statusBadge.className = "text-xs px-2.5 py-1 rounded-full bg-brand-500/20 text-brand-400 font-medium animate-pulse";
 
             try {
+                // Bagi teks menjadi beberapa bagian jika naskah sangat panjang (unlimited length support)
                 const chunks = splitTextIntoChunks(rawText, 750);
                 const pcmChunks = [];
                 let detectedSampleRate = 24000;
@@ -655,17 +663,21 @@
 
                 loadingText.textContent = "Mengodekan audio ke berkas MP3...";
 
+                // Gabungkan semua PCM dan ubah menjadi MP3 asli
                 const combinedPcm = concatInt16Arrays(pcmChunks);
                 currentMp3Blob = encodePcmToMp3(combinedPcm, detectedSampleRate);
 
+                // Buat URL objek MP3 untuk diputar dan diunduh
                 const mp3Url = URL.createObjectURL(currentMp3Blob);
                 const audioPlayer = document.getElementById('audioPlayer');
                 audioPlayer.src = mp3Url;
 
+                // Buat nama file otomatis yang rapi
                 const cleanVoiceName = selectedVoice.toLowerCase();
                 const timestamp = new Date().toISOString().slice(0, 10);
                 currentFilename = `VoxNusa_${cleanVoiceName}_${currentEmotion}_${timestamp}.mp3`;
 
+                // Update Info Metadata Output
                 const genderLabel = currentGender === 'female' ? 'Wanita' : 'Pria';
                 const emotionLabel = currentEmotion.charAt(0).toUpperCase() + currentEmotion.slice(1);
                 const fileSizeKB = (currentMp3Blob.size / 1024).toFixed(1);
@@ -673,13 +685,14 @@
                 document.getElementById('outputMetaInfo').textContent = `${selectedLangText.replace(/^[^\s]+\s/, '')} • ${genderLabel} (${selectedVoice}) • ${emotionLabel}`;
                 document.getElementById('fileSizeBadge').textContent = `${fileSizeKB} KB • MP3`;
 
+                // Tampilkan pemutar audio dan tombol unduh MP3
                 loadingBox.classList.add('hidden');
                 readyAudioBox.classList.remove('hidden');
                 statusBadge.textContent = "Siap Diunduh (MP3)";
                 statusBadge.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
 
                 showToast("Suara berhasil dibuat dalam format MP3!", "success");
-                audioPlayer.play().catch(() => {});
+                audioPlayer.play().catch(() => {}); // Auto-play jika diizinkan browser
 
             } catch (error) {
                 console.error("TTS Error:", error);
