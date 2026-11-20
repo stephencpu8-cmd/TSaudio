@@ -308,7 +308,7 @@
 
         // Konfigurasi aplikasi (siap untuk deploy statis di Vercel)
         const APP_CONFIG = {
-            apiKey: "AQ.Ab8RN6JocXkN9MdqgahuxU_ArdSeBOxw1aQcTLNiaP4Klj0s4w"
+            apiKey: ""
         };
         const apiKey = APP_CONFIG.apiKey;
 
@@ -612,7 +612,7 @@
                 const pcmChunks = [];
                 let detectedSampleRate = 24000;
 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                const apiUrl = "/api/tts";
 
                 for (let i = 0; i < chunks.length; i++) {
                     if (chunks.length > 1) {
